@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "t48client",
+  "version": "${version}",
+  "name": "T48 Demo Client",
+  "description": "Client-side movement and reach experiments for the T48 server-authority demonstration.",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["org.example.t48client.T48Client"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

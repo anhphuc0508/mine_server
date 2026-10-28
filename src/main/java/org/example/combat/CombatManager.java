@@ -18,7 +18,6 @@ import java.util.function.Function;
 /** Owns the demo's decision and damage; EntityAttackEvent does not apply damage itself. */
 public final class CombatManager {
     public static final float DEMO_DAMAGE = 4.0f;
-    public static final float MINIMUM_HEALTH = 1.0f;
 
     private final Function<Entity, Pos> authoritativePosition;
     private final Consumer<String> logger;
@@ -32,17 +31,8 @@ public final class CombatManager {
     /** Real client attacks which passed Minestom's built-in interaction filter. */
     public void handle(EntityAttackEvent event) {
         if (event.getEntity() instanceof Player attacker) {
-            attack(attacker, event.getTarget(), "CLIENT_EVENT");
+            attack(attacker, event.getTarget());
         }
-    }
-
-    /**
-     * Calls our combat path directly using both entities' authoritative positions.
-     * This is a presentation/test hook, not a forged client packet and not proof
-     * that a normal Minecraft client can attack at this distance.
-     */
-    public AttackResult simulateAttack(Player attacker, LivingEntity target) {
-        return attack(attacker, target, "SIMULATION_DIRECT_HOOK");
     }
 
     public boolean isReachValidationEnabled() {
@@ -54,7 +44,7 @@ public final class CombatManager {
         reachValidationEnabled = enabled;
     }
 
-    private AttackResult attack(Player attacker, Entity target, String source) {
+    AttackResult attack(Player attacker, Entity target) {
         Objects.requireNonNull(attacker);
         Objects.requireNonNull(target);
         Pos attackerPosition = positionOf(attacker);
@@ -89,26 +79,21 @@ public final class CombatManager {
         String reason = accepted ? validation.reason() : rejection;
         if (accepted) {
             LivingEntity living = (LivingEntity) target;
-            float amount = Math.min(DEMO_DAMAGE, Math.max(0.0f, before - MINIMUM_HEALTH));
-            if (amount > 0) {
-                boolean damageAccepted = living.damage(Damage.fromPlayer(attacker, amount));
-                damageApplied = damageAccepted && living.getHealth() < before;
-                if (!damageAccepted) {
-                    reason += ":DAMAGE_BLOCKED";
-                }
-            } else {
-                reason += ":HEALTH_FLOOR";
+            boolean damageAccepted = living.damage(Damage.fromPlayer(attacker, DEMO_DAMAGE));
+            damageApplied = damageAccepted && living.getHealth() < before;
+            if (!damageAccepted) {
+                reason += ":DAMAGE_BLOCKED";
             }
         }
 
         float after = target instanceof LivingEntity living ? living.getHealth() : Float.NaN;
         AttackResult result = new AttackResult(accepted, reason, validation.distance(), validation.range(),
-                before, after, damageApplied, source);
+                before, after, damageApplied);
         logger.accept(String.format(Locale.ROOT,
-                "ATTACK source=%s attacker=%s target=%s customReach=%s mode=%s "
+                "ATTACK source=CLIENT_EVENT attacker=%s target=%s customReach=%s mode=%s "
                         + "distance=%.3f range=%.3f decision=%s reason=%s hp=%.1f->%.1f damage=%.1f "
                         + "attackerPos=(%.2f,%.2f,%.2f) targetPos=(%.2f,%.2f,%.2f)",
-                source, attacker.getUsername(), target instanceof Player player ? player.getUsername() : target.getEntityId(),
+                attacker.getUsername(), target instanceof Player player ? player.getUsername() : target.getEntityId(),
                 customReach, attacker.getGameMode(), result.distance(), result.range(),
                 result.accepted() ? "ACCEPT" : "REJECT", result.reason(), before, after,
                 Float.isFinite(before) && Float.isFinite(after) ? before - after : 0.0f,
@@ -123,6 +108,6 @@ public final class CombatManager {
     }
 
     public record AttackResult(boolean accepted, String reason, double distance, double range,
-                               float hpBefore, float hpAfter, boolean damageApplied, String source) {
+                               float hpBefore, float hpAfter, boolean damageApplied) {
     }
 }

@@ -69,11 +69,6 @@ class CombatManagerTest {
         assertEquals(0, events.get());
         assertEquals(before, target.getHealth());
 
-        var direct = manager.simulateAttack(attacker, target);
-        assertTrue(direct.accepted());
-        assertTrue(direct.damageApplied());
-        assertEquals(before - CombatManager.DEMO_DAMAGE, target.getHealth());
-        assertEquals(0, events.get(), "The direct hook must not masquerade as a client attack event");
     }
 
     @Test
@@ -107,14 +102,14 @@ class CombatManagerTest {
     }
 
     @Test
-    void directControlComparisonChangesHealthOnlyWhenValidationIsDisabled(Env env) {
+    void customReachComparisonChangesHealthOnlyWhenValidationIsDisabled(Env env) {
         var instance = env.createEmptyInstance();
         var attacker = env.createPlayer(instance, new Pos(0, 64, 0));
         var target = env.createPlayer(instance, new Pos(8, 64, 0));
         var manager = new CombatManager(Entity::getPosition, ignored -> {});
         float before = target.getHealth();
 
-        var rejected = manager.simulateAttack(attacker, target);
+        var rejected = manager.attack(attacker, target);
         assertFalse(rejected.accepted());
         assertFalse(rejected.damageApplied());
         assertEquals(before, rejected.hpBefore());
@@ -122,11 +117,10 @@ class CombatManagerTest {
         assertEquals(before, target.getHealth());
 
         manager.setReachValidationEnabled(false);
-        var accepted = manager.simulateAttack(attacker, target);
+        var accepted = manager.attack(attacker, target);
         assertTrue(accepted.accepted());
         assertTrue(accepted.damageApplied());
         assertEquals(before - CombatManager.DEMO_DAMAGE, target.getHealth());
-        assertEquals("SIMULATION_DIRECT_HOOK", accepted.source());
     }
 
     @Test
@@ -140,12 +134,12 @@ class CombatManagerTest {
 
         positions.put(attacker, new Pos(-10, 64, 0));
         positions.put(target, new Pos(1, 64, 0));
-        assertFalse(manager.simulateAttack(attacker, target).accepted());
+        assertFalse(manager.attack(attacker, target).accepted());
         assertEquals(before, target.getHealth());
 
         positions.put(attacker, new Pos(0, 64, 0));
         positions.put(target, new Pos(10, 64, 0));
-        assertFalse(manager.simulateAttack(attacker, target).accepted());
+        assertFalse(manager.attack(attacker, target).accepted());
         assertEquals(before, target.getHealth());
     }
 
@@ -181,29 +175,30 @@ class CombatManagerTest {
     }
 
     @Test
-    void demoDamageLeavesTheTargetAliveAtTheHealthFloor(Env env) {
+    void lethalDamageKillsTheTargetAndRejectsFurtherAttacks(Env env) {
         var instance = env.createEmptyInstance();
         var attacker = env.createPlayer(instance, new Pos(0, 64, 0));
         var target = env.createPlayer(instance, new Pos(2, 64, 0));
         var manager = new CombatManager(Entity::getPosition, ignored -> {});
         target.setHealth(2.0f);
 
-        var first = manager.simulateAttack(attacker, target);
-        var second = manager.simulateAttack(attacker, target);
+        var first = manager.attack(attacker, target);
+        var second = manager.attack(attacker, target);
 
         assertTrue(first.accepted());
         assertTrue(first.damageApplied());
-        assertEquals(1.0f, first.hpAfter());
-        assertTrue(second.accepted());
+        assertEquals(0.0f, first.hpAfter());
+        assertFalse(second.accepted());
+        assertEquals("DEAD_TARGET", second.reason());
         assertFalse(second.damageApplied());
-        assertEquals(1.0f, target.getHealth());
-        assertFalse(target.isDead());
+        assertEquals(0.0f, target.getHealth());
+        assertTrue(target.isDead());
     }
 
     private static CombatManager.AttackResult assertRejectedWithoutHealthChange(
             CombatManager manager, Player attacker, Player target) {
         float before = target.getHealth();
-        var result = manager.simulateAttack(attacker, target);
+        var result = manager.attack(attacker, target);
         assertFalse(result.accepted());
         assertFalse(result.damageApplied());
         assertEquals(before, result.hpBefore());

@@ -1,0 +1,9 @@
+{
+  "key.category.t48client": "T48 Demo Client",
+  "key.category.t48client.tools": "T48 Demo Client",
+  "category.t48client.tools": "T48 Demo Client",
+  "key.t48client.menu": "Open demo tool menu",
+  "key.t48client.blink": "Blink 20 blocks",
+  "key.t48client.speed": "Toggle speed",
+  "key.t48client.reach": "Toggle reach"
+}

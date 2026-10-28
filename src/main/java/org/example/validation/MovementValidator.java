@@ -13,8 +13,8 @@ public final class MovementValidator {
     public static final double GROUND_UPWARD_SPEED = 12.0;
     public static final double FLYING_UPWARD_SPEED = 40.0;
     public static final double DOWNWARD_SPEED = 85.0;
-    public static final double BURST_SECONDS = 0.25;
-    public static final double POSITION_TOLERANCE = 0.75;
+    public static final double BURST_SECONDS = 0.10;
+    public static final double POSITION_TOLERANCE = 0.25;
     public static final double MAX_COORDINATE = 30_000_000.0;
     private static final double EPSILON = 1.0e-9;
 
